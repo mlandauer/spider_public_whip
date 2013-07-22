@@ -35,6 +35,7 @@ class CreateLinks < ActiveRecord::Migration
   def self.up
     create_table :links do |t|
       t.string :url, null: false
+      t.string :source_url
       # Whether to follow the links on this page
       t.boolean :spider, null: false
       t.boolean :done, null: false, default: false
@@ -68,8 +69,15 @@ while !Link.where(spider: true, done: false).empty?
   ActiveRecord::Base.transaction do
     new_urls.each do |url|
       # So let's spider this one (unless we're already doing it)
-      Link.find_or_create_by(url: url, spider: (URI.parse(url).host == "localhost"))
+      if Link.find_by(url: url).nil?
+        Link.create(url: url, source_url: link.url, spider: (URI.parse(url).host == "localhost"))
+      end
     end
     link.update_attributes(done: true)
   end
 end
+
+Link.order(:url).each do |link|
+  puts "#{link.url},#{link.source_url}"
+end
+
