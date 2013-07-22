@@ -81,11 +81,12 @@ end
 puts "Writing CSV file #{csv}..."
 # Write result to CSV file
 CSV.open(csv, "w") do |csv|
-  csv << ["URL", "Internal", "Source URL"]
-  Link.order(:spider, :url).each do |link|
+  csv << ["Source URL", "URL (Host)", "URL (Path)", "URL (queries)"]
+  # For the time being don't output external urls
+  Link.where(spider: true).order(:url).each do |link|
     u = URI.parse(link.url)
     queries = (u.query ? u.query.split("&").map{|t| t.split("=")}.flatten : []).map{|t| CGI::unescape(t)}
-    csv << [link.url, link.spider?, link.source_url, u.host, u.path] + queries
+    csv << [link.source_url, u.host, u.path] + queries
   end
 end
 
