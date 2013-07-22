@@ -8,7 +8,20 @@ def get_page_links(url)
   agent = Mechanize.new
   base = URI.parse(url)
   # Ignore links with nil urls
-  agent.get(url).links.map{|link| link.href}.compact.map{|link| (base + link).to_s }
+  begin
+    result = agent.get(url)
+  rescue
+    puts "WARNING: Error retrieving page #{url}"
+    return []
+  end
+  result.links.map{|link| link.href}.compact.map do |link|
+    # Hacky replace spaces with + for badly formatted URLs
+    if link.include?(" ")
+      puts "WARNING: Fixing URL #{link}"
+      link = link.gsub(" ", "+")
+    end
+    (base + link).to_s
+  end
 end
 
 def db_connect(db)
@@ -29,6 +42,7 @@ class CreateLinks < ActiveRecord::Migration
     end
 
     add_index :links, [:spider, :done]
+    add_index :links, :url
   end
 end
 
@@ -47,13 +61,15 @@ else
   Link.create!(url: "http://localhost", spider: true, done: false)
 end
 
-link = Link.where(spider: true, done: false).first
-puts "#{link.url} (#{Link.where(spider: true, done: false).count} left)"
-new_urls = get_page_links(link.url)
-ActiveRecord::Base.transaction do
-  new_urls.each do |url|
-    # So let's spider this one (unless we're already doing it)
-    Link.find_or_create_by(url: url, spider: (URI.parse(url).host == "localhost"))
+while !Link.where(spider: true, done: false).empty?
+  link = Link.where(spider: true, done: false).first
+  puts "#{link.url} (#{Link.where(spider: true, done: false).count} left)"
+  new_urls = get_page_links(link.url)
+  ActiveRecord::Base.transaction do
+    new_urls.each do |url|
+      # So let's spider this one (unless we're already doing it)
+      Link.find_or_create_by(url: url, spider: (URI.parse(url).host == "localhost"))
+    end
+    link.update_attributes(done: true)
   end
-  link.update_attributes(done: true)
 end
