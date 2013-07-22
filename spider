@@ -16,7 +16,16 @@ def get_page_links(url)
     return []
   end
   result.links.map{|link| link.href}.compact.map do |link|
-    (base + link).to_s
+    u = base + link
+    # Remove anchors 
+    u.fragment = nil
+    # A couple of special query parameters that we will sanitize because they result in massive duplication
+    # of urls in a not particularly helpful way. Both of these parameters simply specify a return url
+    u.query = u.query.split("&").delete_if do |t|
+      parameter = t.split("=").first
+      parameter == "r" || parameter == "rr"
+    end.join("&") if u.query
+    u.to_s
   end
 end
 
