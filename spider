@@ -16,10 +16,6 @@ def get_page_links(url)
     return []
   end
   result.links.map{|link| link.href}.compact.map do |link|
-    # Hacky replace spaces with + for badly formatted URLs
-    if link.include?(" ")
-      raise "Broken link #{link} on page #{url}"
-    end
     (base + link).to_s
   end
 end
