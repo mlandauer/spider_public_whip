@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+
+require 'mechanize'
+
+def get_page_links(url)
+  agent = Mechanize.new
+  agent.get(url).links.map{|link| url + link.href }
+end
+
+start_url = URI.parse("http://localhost")
+
+p get_page_links(start_url).map{|u| u.to_s}

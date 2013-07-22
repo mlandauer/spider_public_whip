@@ -1,0 +1,3 @@
+Find a complete list of reachable urls within a given domain
+
+It does by starting at a url and following all the links recursively. It stores everything as it goes in a sqlite database so the tool can be safely stopped and restarted without losing everything.
