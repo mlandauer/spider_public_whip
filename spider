@@ -13,7 +13,7 @@ def get_page_links(url)
     result = agent.get(url)
   rescue
     puts "WARNING: Error retrieving page #{url}"
-    return []
+    return nil
   end
   result.links.map{|link| link.href}.compact.map do |link|
     u = base + link
@@ -44,6 +44,7 @@ class CreateLinks < ActiveRecord::Migration
       # Whether to follow the links on this page
       t.boolean :spider, null: false
       t.boolean :done, null: false, default: false
+      t.boolean :error, null: false, default: false
       t.timestamps
     end
 
@@ -72,26 +73,31 @@ while !Link.where(spider: true, done: false).empty?
   link = Link.where(spider: true, done: false).first
   puts "#{link.url} (#{Link.where(spider: true, done: false).count} left)"
   new_urls = get_page_links(link.url)
-  ActiveRecord::Base.transaction do
-    new_urls.each do |url|
-      # So let's spider this one (unless we're already doing it)
-      if Link.find_by(url: url).nil?
-        Link.create(url: url, source_url: link.url, spider: (URI.parse(url).host == "localhost"))
+  if new_urls.nil?
+    # There was an error reading from this url
+    link.update_attributes(done: true, error: true)
+  else
+    ActiveRecord::Base.transaction do
+      new_urls.each do |url|
+        # So let's spider this one (unless we're already doing it)
+        if Link.find_by(url: url).nil?
+          Link.create(url: url, source_url: link.url, spider: (URI.parse(url).host == "localhost"))
+        end
       end
+      link.update_attributes(done: true)
     end
-    link.update_attributes(done: true)
   end
 end
 
 puts "Writing CSV file #{csv}..."
 # Write result to CSV file
 CSV.open(csv, "w") do |csv|
-  csv << ["Source URL", "URL (Host)", "URL (Path)", "URL (queries)"]
+  csv << ["Source URL", "Error", "URL (Host)", "URL (Path)", "URL (queries)"]
   # For the time being don't output external urls
   Link.where(spider: true).order(:url).each do |link|
     u = URI.parse(link.url)
     queries = (u.query ? u.query.split("&").map{|t| t.split("=")}.flatten : []).map{|t| CGI::unescape(t)}
-    csv << [link.source_url, u.host, u.path] + queries
+    csv << [link.source_url, link.error?, u.host, u.path] + queries
   end
 end
 
