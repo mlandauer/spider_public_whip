@@ -5,8 +5,7 @@ require 'active_record'
 require 'sqlite3'
 require 'csv'
 
-def get_page_links(url)
-  agent = Mechanize.new
+def get_page_links(agent, url)
   base = URI.parse(url)
   # Ignore links with nil urls
   begin
@@ -15,7 +14,9 @@ def get_page_links(url)
     puts "WARNING: Error retrieving page #{url}"
     return nil
   end
-  result.links.map{|link| link.href}.compact.map do |link|
+  # We don't want to follow any logout links
+  links = result.links.delete_if{|link| link.text == "Logout"}
+  links.map{|link| link.href}.compact.map do |link|
     u = base + link
     # Remove anchors 
     u.fragment = nil
@@ -69,10 +70,18 @@ else
   Link.create!(url: "http://localhost", spider: true, done: false)
 end
 
+agent = Mechanize.new
+# First login
+page = agent.get("http://localhost/account/settings.php")
+form = page.forms.first
+form["user_name"] = "mlandauer"
+form["password"] = "foofoo"
+form.click_button
+
 while !Link.where(spider: true, done: false).empty?
   link = Link.where(spider: true, done: false).first
   puts "#{link.url} (#{Link.where(spider: true, done: false).count} left)"
-  new_urls = get_page_links(link.url)
+  new_urls = get_page_links(agent, link.url)
   if new_urls.nil?
     # There was an error reading from this url
     link.update_attributes(done: true, error: true)
@@ -94,7 +103,7 @@ puts "Writing CSV file #{csv}..."
 CSV.open(csv, "w") do |csv|
   csv << ["Source URL", "Error", "URL (Host)", "URL (Path)", "URL (queries)"]
   # For the time being don't output external urls
-  Link.where(spider: true).order(:url).each do |link|
+  Link.order(:url).each do |link|
     u = URI.parse(link.url)
     queries = (u.query ? u.query.split("&").map{|t| t.split("=")}.flatten : []).map{|t| CGI::unescape(t)}
     csv << [link.source_url, link.error?, u.host, u.path] + queries
