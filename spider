@@ -98,13 +98,26 @@ while !Link.where(spider: true, done: false).empty?
   end
 end
 
+# Trace back where a url came from
+def show_url_source(link)
+  while link.source_url
+    puts "*** #{link.url}"
+    link = Link.find_by_url(link.source_url)
+  end
+end
+
 # Extract the query parameters from the url
-def query_params(url)
+def query_params(link)
+  url = link.url
   u = URI.parse(url)
   queries = {}
   if u.query
     u.query.split("&").each do |t|
       key, value = t.split("=").map{|t| CGI::unescape(t)}
+      if queries.has_key?(key)
+        puts "WARNING: URL with duplicate params: #{url}"
+        show_url_source(link)
+      end
       queries[key] = value
     end
   end
@@ -113,7 +126,7 @@ end
 
 puts "Writing CSV file #{csv}..."
 # First get a complete list of all the query parameters
-keys = Link.where(spider: true).map{|link| query_params(link.url).keys }.flatten.uniq.sort
+keys = Link.where(spider: true).map{|link| query_params(link).keys }.flatten.uniq.sort
 
 # Write result to CSV file
 CSV.open(csv, "w") do |csv|
@@ -121,7 +134,7 @@ CSV.open(csv, "w") do |csv|
   # For the time being don't output external urls
   Link.where(spider: true).order(:url).each do |link|
     u = URI.parse(link.url)
-    params = query_params(link.url)
+    params = query_params(link)
     queries = keys.map{|k| params[k]}
     csv << [link.source_url, link.error?, u.host, u.path] + queries
   end
