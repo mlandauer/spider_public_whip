@@ -131,12 +131,12 @@ keys = Link.where(spider: true).map{|link| query_params(link).keys }.flatten.uni
 
 # Write result to CSV file
 CSV.open(csv, "w") do |csv|
-  csv << ["Source URL", "Error", "URL (Host)", "URL (Path)"] + keys
+  csv << ["Source URL", "Error", "Full URL", "URL (Host)", "URL (Path)"] + keys
   # For the time being don't output external urls
   Link.where(spider: true).order(:url).each do |link|
     u = URI.parse(link.url)
     params = query_params(link)
     queries = keys.map{|k| params[k]}
-    csv << [link.source_url, link.error?, u.host, u.path] + queries
+    csv << [link.source_url, link.error?, link.url, u.host, u.path] + queries
   end
 end
