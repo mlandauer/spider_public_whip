@@ -67,7 +67,7 @@ else
   # Create the tables we need
   CreateLinks.up
   # And put the first url in it
-  Link.create!(url: "http://localhost", spider: true, done: false)
+  Link.create!(url: "http://localhost:8080", spider: true, done: false)
 end
 
 agent = Mechanize.new
