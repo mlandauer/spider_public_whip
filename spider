@@ -72,11 +72,11 @@ end
 
 agent = Mechanize.new
 # First login
-page = agent.get("http://localhost/account/settings.php")
-form = page.forms.first
-form["user_name"] = "mlandauer"
-form["password"] = "foofoo"
-form.click_button
+#page = agent.get("http://localhost/account/settings.php")
+#form = page.forms.first
+#form["user_name"] = "mlandauer"
+#form["password"] = "foofoo"
+#form.click_button
 
 while !Link.where(spider: true, done: false).empty?
   link = Link.where(spider: true, done: false).first
