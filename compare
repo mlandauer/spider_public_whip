@@ -17,4 +17,55 @@ def read_paths_from_file
   end
 end
 
-p read_paths_from_file
+def normalise_html(text)
+  tidy(text)
+end
+
+def normalise_xml(text)
+  tidy(text, :xml)
+end
+
+def tidy(text, format = :html)
+  File.open("temp", "w") {|f| f.write(text) }
+  # Requires HTML Tidy (http://tidy.sourceforge.net/) version 14 June 2007 or later
+  # Note the version installed with OS X by default is a version that's too old
+  # Install on OS X with "brew install tidy"
+  command = "#{tidy_path}#{' -xml' if format == :xml} --show-warnings no --sort-attributes alpha -utf8 -q -m temp"
+  if system(command).nil? || $?.exitstatus > 1 #tidy is stupid and returns 1 on warning, 2 on failure.
+    raise "tidy command failed '#{command}'"
+  end
+
+  r = File.read("temp")
+  # Make sure that comments of the form <!-- comment --> are followed by a new line
+  File.delete("temp")
+  r.gsub("--><", "-->\n<")
+end
+
+def tidy_path
+  # On OS X use tidy installed with Homebrew in preference to any other
+  # It would normally be first in the path but we can't depend on that being the case here
+  if File.exists? "/usr/local/bin/tidy"
+    "/usr/local/bin/tidy"
+  else
+    "tidy"
+  end
+end
+
+paths_to_skip = ["/account/lostpass.php"]
+
+host1 = "localhost:8080"
+host2 = "localhost:3000"
+
+(read_paths_from_file - paths_to_skip).each do |path|
+  puts "Checking #{path}..."
+  text1 = Net::HTTP.get(URI.parse("http://#{host1}#{path}"))
+  text2 = Net::HTTP.get(URI.parse("http://#{host2}#{path}"))
+  text1.force_encoding(Encoding::UTF_8)
+  text2.force_encoding(Encoding::UTF_8)
+  n1 = normalise_html(text1)
+  n2 = normalise_html(text2)
+  if n1 != n2
+    puts "Not matching"
+    #exit
+  end
+end
