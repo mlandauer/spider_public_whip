@@ -18,7 +18,7 @@ def get_page_links(agent, url)
   links = result.links.delete_if{|link| link.text == "Logout"}
   links.map{|link| link.href}.compact.map do |link|
     u = base + link
-    # Remove anchors 
+    # Remove anchors
     u.fragment = nil
     # A couple of special query parameters that we will sanitize because they result in massive duplication
     # of urls in a not particularly helpful way. Both of these parameters simply specify a return url
@@ -60,7 +60,7 @@ end
 db = "links.sqlite3"
 csv = "links.csv"
 
-if File.exists?(db) 
+if File.exists?(db)
   db_connect(db)
 else
   db_connect(db)
@@ -139,4 +139,3 @@ CSV.open(csv, "w") do |csv|
     csv << [link.source_url, link.error?, u.host, u.path] + queries
   end
 end
-
