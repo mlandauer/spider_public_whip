@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+# Run this _after_ running spider. It uses the csv file links.csv from the previous step
+
+require 'csv'
+
+def read_paths_from_file
+  urls = []
+  CSV.foreach("links.csv") do |row|
+    urls << row[2]
+  end
+  urls[1..-1].map do |url|
+    u = URI.parse(url)
+    path = u.path
+    path += "?" + u.query if u.query
+    path
+  end
+end
+
+p read_paths_from_file
