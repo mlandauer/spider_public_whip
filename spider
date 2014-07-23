@@ -22,9 +22,10 @@ def get_page_links(agent, url)
     u.fragment = nil
     # A couple of special query parameters that we will sanitize because they result in massive duplication
     # of urls in a not particularly helpful way. Both of these parameters simply specify a return url
+    # Also remove comparison urls between two people. This is to avoid the number of urls blowing up to n**2
     u.query = u.query.split("&").delete_if do |t|
       parameter = t.split("=").first
-      parameter == "r" || parameter == "rr"
+      parameter == "r" || parameter == "rr" || parameter == "mpn2" || parameter == "mpc2" || parameter == "house2"
     end.join("&") if u.query
     u.to_s
   end
