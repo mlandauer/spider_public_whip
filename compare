@@ -51,6 +51,13 @@ def tidy_path
   end
 end
 
+def output(file, text, comment)
+  File.open(file, "w") do |f|
+    f.write("<!-- " + comment + " -->\n")
+    f.write(text.to_s)
+  end
+end
+
 # These paths all go direct (or redirect) to login/registration pages
 paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/account/register.php?",
   "/account/settings.php", "/account/settings.php?",
@@ -81,7 +88,10 @@ paths.each do |path|
   n1 = normalise_html(text1)
   n2 = normalise_html(text2)
   if n1 != n2
-    puts "Not matching"
+    # Write it out to a file
+    output("old.html", n1, path)
+    output("new.html", n2, path)
+    puts "Don't match. Writing to file old.html and new.html"
     exit
   end
 end
