@@ -51,12 +51,28 @@ def tidy_path
   end
 end
 
-paths_to_skip = ["/account/lostpass.php"]
+# These paths all go direct (or redirect) to login/registration pages
+paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/account/register.php?",
+  "/account/settings.php", "/account/settings.php?",
+  /\/account\/wiki.php/]
 
 host1 = "localhost:8080"
 host2 = "localhost:3000"
 
-(read_paths_from_file - paths_to_skip).each do |path|
+# Remove certain paths
+paths = read_paths_from_file
+paths_to_skip.each do |path|
+  if path.kind_of?(String)
+    paths.delete(path)
+  elsif path.kind_of?(Regexp)
+    paths.delete_if{|p| p =~ path }
+  else
+    raise "unexpected type"
+  end
+end
+#paths = paths - paths_to_skip
+
+paths.each do |path|
   puts "Checking #{path}..."
   text1 = Net::HTTP.get(URI.parse("http://#{host1}#{path}"))
   text2 = Net::HTTP.get(URI.parse("http://#{host2}#{path}"))
@@ -66,6 +82,6 @@ host2 = "localhost:3000"
   n2 = normalise_html(text2)
   if n1 != n2
     puts "Not matching"
-    #exit
+    exit
   end
 end
