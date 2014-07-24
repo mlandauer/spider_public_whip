@@ -3,6 +3,8 @@
 # Run this _after_ running spider. It uses the csv file links.csv from the previous step
 
 require 'csv'
+require 'active_record'
+require 'sqlite3'
 
 def read_paths_from_file
   urls = []
@@ -58,6 +60,35 @@ def output(file, text, comment)
   end
 end
 
+def db_connect(db)
+  ActiveRecord::Base.establish_connection(
+    adapter:  'sqlite3', # or 'postgresql' or 'sqlite3'
+    database: db
+  )
+end
+
+class CreatePassedPaths < ActiveRecord::Migration
+  def self.up
+    create_table :passed_paths do |t|
+      t.string :path, null: false
+      t.timestamps
+    end
+
+    add_index :passed_paths, :path
+  end
+end
+
+class PassedPath < ActiveRecord::Base
+end
+
+if File.exists?("passed_paths.sqlite3")
+  db_connect("passed_paths.sqlite3")
+else
+  db_connect("passed_paths.sqlite3")
+  # Create the tables we need
+  CreatePassedPaths.up
+end
+
 # These paths all go direct (or redirect) to login/registration pages
 paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/account/register.php?",
   "/account/settings.php", "/account/settings.php?",
@@ -81,17 +112,21 @@ end
 
 paths.each do |path|
   puts "Checking #{path}..."
-  text1 = Net::HTTP.get(URI.parse("http://#{host1}#{path}"))
-  text2 = Net::HTTP.get(URI.parse("http://#{host2}#{path}"))
-  text1.force_encoding(Encoding::UTF_8)
-  text2.force_encoding(Encoding::UTF_8)
-  n1 = normalise_html(text1)
-  n2 = normalise_html(text2)
-  if n1 != n2
-    # Write it out to a file
-    output("old.html", n1, path)
-    output("new.html", n2, path)
-    puts "Don't match. Writing to file old.html and new.html"
-    exit
+  unless PassedPath.where(path: path).exists?
+    text1 = Net::HTTP.get(URI.parse("http://#{host1}#{path}"))
+    text2 = Net::HTTP.get(URI.parse("http://#{host2}#{path}"))
+    text1.force_encoding(Encoding::UTF_8)
+    text2.force_encoding(Encoding::UTF_8)
+    n1 = normalise_html(text1)
+    n2 = normalise_html(text2)
+    if n1 != n2
+      # Write it out to a file
+      output("old.html", n1, path)
+      output("new.html", n2, path)
+      puts "Don't match. Writing to file old.html and new.html"
+      exit
+    else
+      PassedPath.create(path: path)
+    end
   end
 end
