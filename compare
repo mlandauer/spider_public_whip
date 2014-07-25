@@ -97,7 +97,10 @@ paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/account/re
 # We keep running into a problem with a link in urls with Barnaby Joyce pointing to a
 # different member url than we're currently. I'm going round in circles trying to solve
 # this. So probably best wait until the end and solve them all at once.
-paths_to_skip += [/Barnaby_Joyce/]
+paths_to_skip += [/Barnaby_Joyce/, /David_Feeney/]
+
+# See https://github.com/openaustralia/publicwhip/issues/252
+paths_to_skip += [/date=2009-11-26&number=9&house=senate/]
 
 host1 = "localhost:8080"
 host2 = "localhost:3000"
