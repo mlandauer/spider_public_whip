@@ -108,25 +108,27 @@ paths_to_skip.each do |path|
     raise "unexpected type"
   end
 end
-#paths = paths - paths_to_skip
 
+# Remove paths that we have successfully checked before
+paths = paths - PassedPath.all.map{|p| p.path}
+
+count = paths.count
 paths.each do |path|
-  puts "Checking #{path}..."
-  unless PassedPath.where(path: path).exists?
-    text1 = Net::HTTP.get(URI.parse("http://#{host1}#{path}"))
-    text2 = Net::HTTP.get(URI.parse("http://#{host2}#{path}"))
-    text1.force_encoding(Encoding::UTF_8)
-    text2.force_encoding(Encoding::UTF_8)
-    n1 = normalise_html(text1)
-    n2 = normalise_html(text2)
-    if n1 != n2
-      # Write it out to a file
-      output("old.html", n1, path)
-      output("new.html", n2, path)
-      puts "Don't match. Writing to file old.html and new.html"
-      exit
-    else
-      PassedPath.create(path: path)
-    end
+  count -= 1
+  puts "Checking #{path} (#{count} left)..."
+  text1 = Net::HTTP.get(URI.parse("http://#{host1}#{path}"))
+  text2 = Net::HTTP.get(URI.parse("http://#{host2}#{path}"))
+  text1.force_encoding(Encoding::UTF_8)
+  text2.force_encoding(Encoding::UTF_8)
+  n1 = normalise_html(text1)
+  n2 = normalise_html(text2)
+  if n1 != n2
+    # Write it out to a file
+    output("old.html", n1, path)
+    output("new.html", n2, path)
+    puts "Don't match. Writing to file old.html and new.html"
+    exit
+  else
+    PassedPath.create(path: path)
   end
 end
