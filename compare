@@ -94,9 +94,6 @@ paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/lostpass.p
   "/account/settings.php", "/account/settings.php?",
   /\/account\/wiki.php/, "/policy.php?id=1&display=editdefinition"]
 
-# See https://github.com/openaustralia/publicwhip/issues/252
-paths_to_skip += [/date=2009-11-26&number=9/]
-
 # The PHP is linking to a non-existent policy for some reason
 paths_to_skip += [/policy.php\?id=3/, /policy.php\?id=10/]
 
