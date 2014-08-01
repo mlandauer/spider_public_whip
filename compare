@@ -90,9 +90,9 @@ else
 end
 
 # These paths all go direct (or redirect) to login/registration pages
-paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/account/register.php?",
+paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/lostpass.php", "/account/register.php?",
   "/account/settings.php", "/account/settings.php?",
-  /\/account\/wiki.php/]
+  /\/account\/wiki.php/, "/policy.php?id=1&display=editdefinition"]
 
 # We keep running into a problem with a link in urls with Barnaby Joyce pointing to a
 # different member url than we're currently. I'm going round in circles trying to solve
@@ -100,7 +100,13 @@ paths_to_skip = ["/account/addpolicy.php", "/account/lostpass.php", "/account/re
 paths_to_skip += [/Barnaby_Joyce/, /David_Feeney/]
 
 # See https://github.com/openaustralia/publicwhip/issues/252
-paths_to_skip += [/date=2009-11-26&number=9&house=senate/]
+paths_to_skip += [/date=2009-11-26&number=9/]
+
+# The PHP is linking to a non-existent policy for some reason
+paths_to_skip += [/policy.php\?id=3/, /policy.php\?id=10/]
+
+# For some reason badly encoded electorate has slipped into some urls
+#paths_to_skip += [/Kingsford\+Smith/]
 
 host1 = "localhost:8080"
 host2 = "localhost:3000"
