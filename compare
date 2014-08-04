@@ -115,10 +115,17 @@ end
 # Remove paths that we have successfully checked before
 paths = paths - PassedPath.all.map{|p| p.path}
 
+
+done = 0
+start_time = Time.now
 count = paths.count
 paths.each do |path|
-  count -= 1
-  puts "Checking #{path} (#{count} left)..."
+  if done > 0
+    eta = Time.now + count * (Time.now - start_time) / done
+    puts "Checking #{path} (#{count} left, eta: #{eta})..."
+  else
+    puts "Checking #{path} (#{count} left)..."
+  end
   text1 = Net::HTTP.get(URI.parse("http://#{host1}#{path}"))
   text2 = Net::HTTP.get(URI.parse("http://#{host2}#{path}"))
   text1.force_encoding(Encoding::UTF_8)
@@ -134,4 +141,6 @@ paths.each do |path|
   else
     PassedPath.create(path: path)
   end
+  count -= 1
+  done += 1
 end
