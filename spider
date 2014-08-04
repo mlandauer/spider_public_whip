@@ -25,7 +25,7 @@ def get_page_links(agent, url)
     # Also remove comparison urls between two people. This is to avoid the number of urls blowing up to n**2
     u.query = u.query.split("&").delete_if do |t|
       parameter = t.split("=").first
-      parameter == "r" || parameter == "rr" || parameter == "mpn2" || parameter == "mpc2" || parameter == "house2"
+      parameter == "r" || parameter == "rr"
     end.join("&") if u.query
     u.to_s
   end
@@ -47,15 +47,22 @@ class CreateLinks < ActiveRecord::Migration
       t.boolean :spider, null: false
       t.boolean :done, null: false, default: false
       t.boolean :error, null: false, default: false
+      t.boolean :comparison_url, null: false, default: false
       t.timestamps
     end
 
     add_index :links, [:spider, :done]
     add_index :links, :url
+    add_index :links, :comparison_url
   end
 end
 
 class Link < ActiveRecord::Base
+end
+
+def comparison_url?(url)
+  q = URI.parse(url).query
+  q ? q.split("&").any?{|q| q =~ /(mpn2|mpc2|house2)=/} : false
 end
 
 db = "links.sqlite3"
@@ -91,7 +98,16 @@ while !Link.where(spider: true, done: false).empty?
       new_urls.each do |url|
         # So let's spider this one (unless we're already doing it)
         if Link.find_by(url: url).nil?
-          Link.create(url: url, source_url: link.url, spider: (URI.parse(url).host == "localhost"))
+          # Check if the url is for one of the people comparison pages. If so handle it in a special way
+          if comparison_url?(url)
+            comparison_count = Link.where(comparison_url: true).count
+            if comparison_count < 1000
+              puts "Accepting comparison url: #{url} (#{comparison_count})"
+              Link.create(url: url, source_url: link.url, spider: (URI.parse(url).host == "localhost"), comparison_url: true)
+            end
+          else
+            Link.create(url: url, source_url: link.url, spider: (URI.parse(url).host == "localhost"))
+          end
         end
       end
       link.update_attributes(done: true)
